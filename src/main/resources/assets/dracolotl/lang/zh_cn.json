@@ -1,0 +1,48 @@
+{
+  "advancements.dracolotl_bucket_get.title": "最可爱的顶级掠食者",
+  "advancements.dracolotl_bucket_get.description": "这个容器无法永远困住它。",
+  "item.dracolotl.dracolotl_spawn_egg": "龙螈生成蛋",
+  "item.dracolotl.bucket_of_dracolotl": "龙螈桶",
+  "entity.dracolotl.dracolotl": "龙螈",
+
+  "message.dracolotl.behavior.wander": "龙螈将会 漫游 ",
+  "message.dracolotl.behavior.follow": "龙螈将会 跟随 ",
+  "message.dracolotl.behavior.stay": "龙螈将会 原地停留 ",
+
+  "jei.dracolotl.dracolotl_info": "要召唤萌萌的龙螈，首先搭建三格高的黑曜石柱，在柱体四个侧面各间隔一格放置黑曜石，并在每块黑曜石上放置一个末地水晶。然后，在柱子顶端放置一颗龙蛋并与之互动。传说中曾有一只被遗忘的红色龙螈，名为‘地狱萌龙’。",
+  
+  "title.dracolotl.config": "龙螈-模组配置",
+
+  "category.dracolotl.attributes": "基础属性",
+  "category.dracolotl.feeding": "喂食与掉落",
+  "category.dracolotl.behavior": "行为与机制",
+
+  "option.dracolotl.max_health": "最大生命值",
+
+  "tooltip.dracolotl.max_health": "龙螈的最大生命值上限（范围 1.0 ~ 1024.0，默认 40.0）",
+  "option.dracolotl.ground_speed": "地面移动速度",
+  "tooltip.dracolotl.ground_speed": "龙螈在地面爬行时的移动速度（默认 0.15）",
+  "option.dracolotl.flying_speed": "飞行移动速度",
+  "tooltip.dracolotl.flying_speed": "龙螈在飞行或水中的移动速度（默认 0.6）",
+  "option.dracolotl.attack_damage": "近战攻击伤害",
+  "tooltip.dracolotl.attack_damage": "龙螈每次近战攻击造成的伤害点数（默认 5.0）",
+  "option.dracolotl.armor": "基础护甲值",
+  "tooltip.dracolotl.armor": "龙螈自带的基础护甲点数（默认 4.0）",
+  "option.dracolotl.egg_drop_chance": "紫松果掉落龙蛋概率 (%)",
+  "tooltip.dracolotl.egg_drop_chance": "喂食紫松果（紫颂花/紫颂果）时生成龙蛋的概率（0.0 ~ 100.0%，默认 3.0%）",
+  "option.dracolotl.food_heal_amount": "食物单次回血量",
+  "tooltip.dracolotl.food_heal_amount": "每次喂食回血食物恢复的生命点数（4点生命即2颗心，默认 4.0）",
+  "option.dracolotl.healing_foods": "可回血食物列表",
+  "tooltip.dracolotl.healing_foods": "可当成食物喂食给龙螈回血的物品标识列表（默认紫颂花与紫颂果，可按需添加自定义物品）",
+  "option.dracolotl.tame_chance": "驯服成功概率 (%)",
+  "tooltip.dracolotl.tame_chance": "使用驯服道具右键龙螈时成功驯服的概率（0.0 ~ 100.0%，默认 20.0%）",
+  "option.dracolotl.tame_items": "驯服道具列表",
+  "tooltip.dracolotl.tame_items": "用于驯服龙螈的物品标识列表（默认末影之眼）",
+  "option.dracolotl.play_dead_threshold": "装死触发生命阈值",
+  "tooltip.dracolotl.play_dead_threshold": "当龙螈生命值受到伤害后降至该阈值以下时进入装死回血状态（默认 8.0，设为 0 可禁用）",
+  "option.dracolotl.enable_dragon_breath": "允许玻璃瓶采集龙息",
+  "tooltip.dracolotl.enable_dragon_breath": "主人手持玻璃瓶右键已驯服龙螈是否能采集龙息（默认开启）",
+  
+  "commands.dracolotl.reload.success": "§a[Dracolotl] 配置文件已热重载成功，并已同步更新至所有维度的龙螈实体！",
+  "commands.dracolotl.reload.failure": "§c[Dracolotl] 配置文件热重载失败: %s"
+}

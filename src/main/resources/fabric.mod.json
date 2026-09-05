@@ -1,0 +1,50 @@
+{
+	"schemaVersion": 1,
+	"id": "dracolotl",
+	"version": "${version}",
+	"name": "Dracolotl",
+	"description": "Ever wished that instead of a magnificent mount or untold magical powers, you could turn the Dragon Egg into a draconic pet Axolotl? No? Well, here it is anyway.",
+	"authors": [
+		"TrashElemental",
+		"\u9752\u8863\u7483"
+	],
+	"contact": {
+		"homepage": "https://curseforge.com/minecraft/mc-mods/dracolotl"
+	},
+	"license": "MIT",
+	"icon": "assets/dracolotl/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"net.trashelemental.dracolotl.Dracolotl"
+		],
+		"client": [
+			"net.trashelemental.dracolotl.client.DracolotlClient"
+		],
+		"jei_mod_plugin": [
+			"net.trashelemental.dracolotl.compat.JEI.JEIDracolotlPlugin"
+		],
+		"modmenu": [
+			"net.trashelemental.dracolotl.client.compat.ModMenuCompat"
+		]
+	},
+	"mixins": [
+		"dracolotl.mixins.json",
+		{
+			"config": "dracolotl.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*",
+		"geckolib": ">=4.7.0"
+	},
+	"suggests": {
+		"jei": "*",
+		"cloth-config": "*",
+		"modmenu": "*"
+	}
+}

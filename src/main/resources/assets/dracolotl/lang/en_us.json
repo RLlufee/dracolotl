@@ -1,15 +1,50 @@
 {
-
   "advancements.dracolotl_bucket_get.title": "The Cutest Apex Predator",
   "advancements.dracolotl_bucket_get.description": "This vessel cannot contain him forever.",
-  "advancements.dracolotl_summon.title": "The Beginning",
-  "advancements.dracolotl_summon.description": "Hatch the Dragon Egg into a Dracolotl",
 
   "item.dracolotl.dracolotl_spawn_egg": "Dracolotl Spawn Egg",
   "item.dracolotl.bucket_of_dracolotl": "Bucket of Dracolotl",
 
   "entity.dracolotl.dracolotl": "Dracolotl",
 
-  "jei.dracolotl.dracolotl_info": "To summon the almighty Dracolotl, make a pillar of obsidian three blocks high. One block away from each of its faces, place another block of obsidian, and place an End Crystal atop each one. Then, place a Dragon Egg atop the pillar, and interact with it. The legends whisper of a forgotten red dracolotl that was named 'Hellkite.'"
+  "message.dracolotl.behavior.wander": "Dracolotl will wander",
+  "message.dracolotl.behavior.follow": "Dracolotl will follow",
+  "message.dracolotl.behavior.stay": "Dracolotl will stay",
 
+  "jei.dracolotl.dracolotl_info": "To summon the almighty Dracolotl, make a pillar of obsidian three blocks high. One block away from each of its faces, place another block of obsidian, and place an End Crystal atop each one. Then, place a Dragon Egg atop the pillar, and interact with it. The legends whisper of a forgotten red dracolotl that was named 'Hellkite.'",
+
+  "title.dracolotl.config": "Dracolotl Configuration",
+  "category.dracolotl.attributes": "Attributes",
+  "category.dracolotl.feeding": "Feeding & Drops",
+  "category.dracolotl.behavior": "Behavior & Mechanics",
+
+  "option.dracolotl.max_health": "Max Health",
+  "tooltip.dracolotl.max_health": "Maximum health of Dracolotl (Range: 1.0 ~ 1024.0, Default: 40.0)",
+  "option.dracolotl.ground_speed": "Ground Movement Speed",
+  "tooltip.dracolotl.ground_speed": "Movement speed of Dracolotl on ground (Default: 0.15)",
+  "option.dracolotl.flying_speed": "Flying Speed",
+  "tooltip.dracolotl.flying_speed": "Movement speed of Dracolotl when flying or in water (Default: 0.6)",
+  "option.dracolotl.attack_damage": "Attack Damage",
+  "tooltip.dracolotl.attack_damage": "Melee attack damage dealt by Dracolotl (Default: 5.0)",
+  "option.dracolotl.armor": "Armor",
+  "tooltip.dracolotl.armor": "Base armor points of Dracolotl (Default: 4.0)",
+
+  "option.dracolotl.egg_drop_chance": "Chorus Flower Egg Drop Chance (%)",
+  "tooltip.dracolotl.egg_drop_chance": "Chance percentage of dropping a dragon egg when feeding chorus flower/fruit (0.0 ~ 100.0%, Default: 3.0%)",
+  "option.dracolotl.food_heal_amount": "Food Healing Amount",
+  "tooltip.dracolotl.food_heal_amount": "Amount of health points restored per feeding (4.0 health = 2 hearts, Default: 4.0)",
+  "option.dracolotl.healing_foods": "Healing Foods List",
+  "tooltip.dracolotl.healing_foods": "List of item identifiers that can be fed to heal Dracolotl (Default: chorus flower and fruit)",
+
+  "option.dracolotl.tame_chance": "Tame Chance (%)",
+  "tooltip.dracolotl.tame_chance": "Chance percentage of successfully taming Dracolotl (0.0 ~ 100.0%, Default: 20.0%)",
+  "option.dracolotl.tame_items": "Tame Items List",
+  "tooltip.dracolotl.tame_items": "List of item identifiers used to tame Dracolotl (Default: minecraft:ender_eye)",
+  "option.dracolotl.play_dead_threshold": "Play-Dead Health Threshold",
+  "tooltip.dracolotl.play_dead_threshold": "Health threshold to trigger playing dead and regenerating (Default: 8.0, 0 to disable)",
+  "option.dracolotl.enable_dragon_breath": "Enable Dragon Breath Collection",
+  "tooltip.dracolotl.enable_dragon_breath": "Whether owners can collect dragon breath by right-clicking with a glass bottle (Default: true)",
+
+  "commands.dracolotl.reload.success": "§a[Dracolotl] Configuration reloaded successfully and applied to all Dracolotls!",
+  "commands.dracolotl.reload.failure": "§c[Dracolotl] Failed to reload configuration: %s"
 }
