@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "minecraft:dragon_egg",
+      "required": false
+    },
+    {
+      "id": "dragonmounts:dragon_egg",
+      "required": false
+    },
+    {
+      "id": "rediscovered:red_dragon_egg",
+      "required": false
+    }
+  ]
+}

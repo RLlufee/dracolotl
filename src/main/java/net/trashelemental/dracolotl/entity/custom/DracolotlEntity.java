@@ -1,7 +1,11 @@
 package net.trashelemental.dracolotl.entity.custom;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -18,11 +22,23 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.AgeableMob;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.FlyingMoveControl;
-import net.minecraft.world.entity.ai.goal.*;
+import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
+import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
+import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
+import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
+import net.minecraft.world.entity.ai.goal.TemptGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtTargetGoal;
@@ -30,8 +46,6 @@ import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.animal.Bee;
-import net.minecraft.world.entity.animal.axolotl.Axolotl;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -39,183 +53,185 @@ import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.fluids.FluidType;
-import net.trashelemental.dracolotl.dracolotl;
+import net.trashelemental.dracolotl.Dracolotl;
+import net.trashelemental.dracolotl.config.DracolotlConfig;
 import net.trashelemental.dracolotl.item.ModItems;
 import net.trashelemental.dracolotl.util.ModBucketableInterface;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animatable.instance.SingletonAnimatableInstanceCache;
-import software.bernie.geckolib.animation.*;
+import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.animation.Animation;
+import software.bernie.geckolib.animation.AnimationController;
 import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.animation.PlayState;
+import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
-import java.util.List;
-import java.util.Objects;
-
-@SuppressWarnings("Deprecated")
 public class DracolotlEntity extends TamableAnimal implements GeoEntity, ModBucketableInterface {
+    private static final EntityDataAccessor<Boolean> DATA_PLAYING_DEAD = SynchedEntityData.defineId(DracolotlEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> FROM_BUCKET = SynchedEntityData.defineId(DracolotlEntity.class, EntityDataSerializers.BOOLEAN);
+    public String BEHAVIOR = "WANDER";
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
+
     public DracolotlEntity(EntityType<? extends TamableAnimal> entityType, Level level) {
         super(entityType, level);
         this.moveControl = new FlyingMoveControl(this, 20, true);
+        this.applyConfigAttributes();
     }
 
-    private static final EntityDataAccessor<Boolean> DATA_PLAYING_DEAD;
-    private static final EntityDataAccessor<Boolean> FROM_BUCKET;
-
-    protected void defineSynchedData(SynchedEntityData.@NotNull Builder builder) {
+    @Override
+    protected void defineSynchedData(@NotNull SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(DATA_PLAYING_DEAD, false);
         builder.define(FROM_BUCKET, false);
     }
 
-    static {
-        DATA_PLAYING_DEAD = SynchedEntityData.defineId(DracolotlEntity.class, EntityDataSerializers.BOOLEAN);
-        FROM_BUCKET = SynchedEntityData.defineId(DracolotlEntity.class, EntityDataSerializers.BOOLEAN);
-    }
-
-
-
     @Override
     protected void registerGoals() {
         super.registerGoals();
-        {
-
-
-            this.goalSelector.addGoal(1, new OwnerHurtByTargetGoal(this) {
-                        @Override
-                        public boolean canUse() {
-                            return super.canUse() && follow(DracolotlEntity.this) && !playingDead(DracolotlEntity.this);
-                        }
-                    });
-            this.targetSelector.addGoal(2, new OwnerHurtTargetGoal(this) {
-                        @Override
-                        public boolean canUse() {
-                            return super.canUse() && follow(DracolotlEntity.this) && !playingDead(DracolotlEntity.this);
-                        }
-                    });
-            this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.2, false) {
+        this.goalSelector.addGoal(1, new OwnerHurtByTargetGoal(this) {
             @Override
             public boolean canUse() {
-                return super.canUse() && !playingDead(DracolotlEntity.this);
+                return super.canUse() && DracolotlEntity.follow(DracolotlEntity.this) && !DracolotlEntity.playingDead(DracolotlEntity.this);
             }
         });
-            this.targetSelector.addGoal(4, new HurtByTargetGoal(this) {
-                        @Override
-                        public boolean canUse() {
-                            return super.canUse() && !playingDead(DracolotlEntity.this);
-                        }
-                    });
-            this.goalSelector.addGoal(5, new FollowOwnerGoal(this, 1, 10, 2) {
-                @Override
-                public boolean canUse() {
-                    return super.canUse() && follow(DracolotlEntity.this) && !playingDead(DracolotlEntity.this);
-                }
-            });
-
-            this.goalSelector.addGoal(7, new TemptGoal(this, 1, Ingredient.of(Items.ENDER_EYE), false) {
-                @Override
-                public boolean canUse() {
-                    return super.canUse() && wander(DracolotlEntity.this) && !playingDead(DracolotlEntity.this);
-                }
-            });
-            this.goalSelector.addGoal(8, new RandomStrollGoal(this, 1) {
-                @Override
-                public boolean canUse() {
-                    return super.canUse() && wander(DracolotlEntity.this) && !playingDead(DracolotlEntity.this);
-                }
-            });
-            this.goalSelector.addGoal(9, new LookAtPlayerGoal(this, Player.class, (float) 6) {
-                @Override
-                public boolean canUse() {
-                    return super.canUse() && !playingDead(DracolotlEntity.this);
-                }
-            });
-            this.goalSelector.addGoal(10, new RandomLookAroundGoal(this) {
+        this.targetSelector.addGoal(2, new OwnerHurtTargetGoal(this) {
             @Override
             public boolean canUse() {
-                return super.canUse() && !playingDead(DracolotlEntity.this);
+                return super.canUse() && DracolotlEntity.follow(DracolotlEntity.this) && !DracolotlEntity.playingDead(DracolotlEntity.this);
             }
         });
-
-
-
-        }
+        this.goalSelector.addGoal(3, new MeleeAttackGoal(this, 1.2, false) {
+            @Override
+            public boolean canUse() {
+                return super.canUse() && !DracolotlEntity.playingDead(DracolotlEntity.this);
+            }
+        });
+        this.targetSelector.addGoal(4, new HurtByTargetGoal(this) {
+            @Override
+            public boolean canUse() {
+                return super.canUse() && !DracolotlEntity.playingDead(DracolotlEntity.this);
+            }
+        });
+        this.goalSelector.addGoal(5, new FollowOwnerGoal(this, 1.0, 10.0f, 2.0f) {
+            @Override
+            public boolean canUse() {
+                return super.canUse() && DracolotlEntity.follow(DracolotlEntity.this) && !DracolotlEntity.playingDead(DracolotlEntity.this);
+            }
+        });
+        this.goalSelector.addGoal(7, new TemptGoal(this, 1.0, Ingredient.of(Items.ENDER_EYE), false) {
+            @Override
+            public boolean canUse() {
+                return super.canUse() && DracolotlEntity.wander(DracolotlEntity.this) && !DracolotlEntity.playingDead(DracolotlEntity.this);
+            }
+        });
+        this.goalSelector.addGoal(8, new RandomStrollGoal(this, 1.0) {
+            @Override
+            public boolean canUse() {
+                return super.canUse() && DracolotlEntity.wander(DracolotlEntity.this) && !DracolotlEntity.playingDead(DracolotlEntity.this);
+            }
+        });
+        this.goalSelector.addGoal(9, new LookAtPlayerGoal(this, Player.class, 6.0f) {
+            @Override
+            public boolean canUse() {
+                return super.canUse() && !DracolotlEntity.playingDead(DracolotlEntity.this);
+            }
+        });
+        this.goalSelector.addGoal(10, new RandomLookAroundGoal(this) {
+            @Override
+            public boolean canUse() {
+                return super.canUse() && !DracolotlEntity.playingDead(DracolotlEntity.this);
+            }
+        });
     }
 
-
-
     public static boolean follow(DracolotlEntity entity) {
-        if (entity == null)
+        if (entity == null) {
             return false;
+        }
         return entity.isFollowing();
     }
 
     public static boolean wander(DracolotlEntity entity) {
-        if (entity == null)
+        if (entity == null) {
             return false;
+        }
         return entity.isWandering();
     }
 
     public static boolean playingDead(DracolotlEntity entity) {
-        if (entity == null)
+        if (entity == null) {
             return false;
+        }
         return entity.isPlayingDead();
     }
 
-
     public static AttributeSupplier.Builder createAttributes() {
+        var config = DracolotlConfig.get();
         return Animal.createLivingAttributes()
-
-                .add(Attributes.MAX_HEALTH, 40)
-                .add(Attributes.MOVEMENT_SPEED, 0.3)
-                .add(Attributes.ATTACK_DAMAGE, 5)
-                .add(Attributes.ARMOR, 4)
-                .add(Attributes.FOLLOW_RANGE, 16)
-                .add(Attributes.KNOCKBACK_RESISTANCE, 0.3)
-                .add(Attributes.ATTACK_KNOCKBACK, 0)
-                .add(Attributes.FLYING_SPEED, 0.6);
-
+            .add(Attributes.MAX_HEALTH, config.maxHealth)
+            .add(Attributes.MOVEMENT_SPEED, config.groundSpeed)
+            .add(Attributes.ATTACK_DAMAGE, config.attackDamage)
+            .add(Attributes.ARMOR, config.armor)
+            .add(Attributes.FOLLOW_RANGE, 16.0)
+            .add(Attributes.KNOCKBACK_RESISTANCE, 0.3)
+            .add(Attributes.ATTACK_KNOCKBACK, 0.0)
+            .add(Attributes.FLYING_SPEED, config.flyingSpeed);
     }
 
+    public void applyConfigAttributes() {
+        var config = DracolotlConfig.get();
+        var maxHealthAttr = this.getAttribute(Attributes.MAX_HEALTH);
+        if (maxHealthAttr != null) {
+            maxHealthAttr.setBaseValue(config.maxHealth);
+            if (this.getHealth() > config.maxHealth) {
+                this.setHealth((float) config.maxHealth);
+            }
+        }
+        var attackAttr = this.getAttribute(Attributes.ATTACK_DAMAGE);
+        if (attackAttr != null) {
+            attackAttr.setBaseValue(config.attackDamage);
+        }
+        var armorAttr = this.getAttribute(Attributes.ARMOR);
+        if (armorAttr != null) {
+            armorAttr.setBaseValue(config.armor);
+        }
+        var flyingSpeedAttr = this.getAttribute(Attributes.FLYING_SPEED);
+        if (flyingSpeedAttr != null) {
+            flyingSpeedAttr.setBaseValue(config.flyingSpeed);
+        }
+    }
 
-    //Flying
-    protected PathNavigation createNavigation(Level p_level) {
-        FlyingPathNavigation flyingpathnavigation = new FlyingPathNavigation(this, p_level) {
-            public boolean isStableDestination(BlockPos p_27947_) {
-                return !this.level.getBlockState(p_27947_.below()).isAir();
+    @Override
+    protected PathNavigation createNavigation(Level level) {
+        FlyingPathNavigation flyingPathNavigation = new FlyingPathNavigation(this, level) {
+            @Override
+            public boolean isStableDestination(BlockPos pos) {
+                return !this.level.getBlockState(pos.below()).isAir();
             }
         };
-        flyingpathnavigation.setCanOpenDoors(false);
-        flyingpathnavigation.setCanFloat(false);
-        flyingpathnavigation.setCanPassDoors(true);
-        return flyingpathnavigation;
+        flyingPathNavigation.setCanOpenDoors(false);
+        flyingPathNavigation.setCanFloat(false);
+        flyingPathNavigation.setCanPassDoors(true);
+        return flyingPathNavigation;
     }
-
-
-
-    //Slower movement on ground
-    private static final double GROUND_SPEED = 0.15;
-    private static final double AIR_SPEED = 0.6;
 
     @Override
     public void travel(Vec3 travelVector) {
+        var config = DracolotlConfig.get();
         if (this.isFlying() || this.isInLiquid() || this.isInLava()) {
-            Objects.requireNonNull(this.getAttribute(Attributes.MOVEMENT_SPEED)).setBaseValue(AIR_SPEED);
+            Objects.requireNonNull(this.getAttribute(Attributes.MOVEMENT_SPEED)).setBaseValue(config.flyingSpeed);
         } else {
-            Objects.requireNonNull(this.getAttribute(Attributes.MOVEMENT_SPEED)).setBaseValue(GROUND_SPEED);
+            Objects.requireNonNull(this.getAttribute(Attributes.MOVEMENT_SPEED)).setBaseValue(config.groundSpeed);
         }
-
         super.travel(travelVector);
     }
 
-
-
-    //Bucket Behavior
     @Override
     public ItemStack getBucketItemStack() {
-        return new ItemStack(ModItems.BUCKET_OF_DRACOLOTL.get());
+        return new ItemStack(ModItems.BUCKET_OF_DRACOLOTL);
     }
 
     @Override
@@ -223,30 +239,32 @@ public class DracolotlEntity extends TamableAnimal implements GeoEntity, ModBuck
         return SoundEvents.BUCKET_FILL_AXOLOTL;
     }
 
+    @Override
     public boolean requiresCustomPersistence() {
         return super.requiresCustomPersistence() || this.fromBucket();
     }
 
+    @Override
     public boolean removeWhenFarAway(double distanceToClosestPlayer) {
         return !this.fromBucket() && !this.hasCustomName() && !this.isTame();
     }
 
+    @Override
     public boolean fromBucket() {
-        return (Boolean)this.entityData.get(FROM_BUCKET);
+        return this.entityData.get(FROM_BUCKET);
     }
 
+    @Override
     public void setFromBucket(boolean fromBucket) {
         this.entityData.set(FROM_BUCKET, fromBucket);
     }
 
+    @Override
     public void saveToBucketTag(ItemStack stack) {
         ModBucketableInterface.saveDefaultDataToBucketTag(this, stack);
-        CustomData.update(DataComponents.BUCKET_ENTITY_DATA, stack, (data) -> {
-            // Save tame status
+        CustomData.update(DataComponents.BUCKET_ENTITY_DATA, stack, data -> {
             if (this.isTame()) {
-                data.putBoolean("IsTame", true);  // Save tamed status
-
-                // Save owner UUID if tamed
+                data.putBoolean("IsTame", true);
                 if (this.getOwnerUUID() != null) {
                     data.putUUID("OwnerUUID", this.getOwnerUUID());
                 }
@@ -254,32 +272,27 @@ public class DracolotlEntity extends TamableAnimal implements GeoEntity, ModBuck
         });
     }
 
+    @Override
     public void loadFromBucketTag(CompoundTag tag) {
         ModBucketableInterface.loadDefaultDataFromBucketTag(this, tag);
-
         if (tag.contains("IsTame")) {
             this.setTame(tag.getBoolean("IsTame"), false);
         }
-
         if (tag.contains("OwnerUUID")) {
             this.setOwnerUUID(tag.getUUID("OwnerUUID"));
         }
-
         if (this.isTame()) {
             this.BEHAVIOR = "FOLLOW";
         }
-
+        this.applyConfigAttributes();
     }
 
-
-
-    //Play Dead Behavior
     public void setPlayingDead(boolean playingDead) {
         this.entityData.set(DATA_PLAYING_DEAD, playingDead);
     }
 
     public boolean isPlayingDead() {
-        return (Boolean)this.entityData.get(DATA_PLAYING_DEAD);
+        return this.entityData.get(DATA_PLAYING_DEAD);
     }
 
     public boolean canBeSeenAsEnemy() {
@@ -292,33 +305,25 @@ public class DracolotlEntity extends TamableAnimal implements GeoEntity, ModBuck
 
     @Override
     public boolean hurt(DamageSource source, float amount) {
-
-        //Damage Immunities
-        if (source.is(DamageTypes.FALL) ||
-                source.is(DamageTypes.CAMPFIRE) ||
-                source.is(DamageTypes.IN_FIRE) ||
-                source.is(DamageTypes.ON_FIRE) ||
-                source.is(DamageTypes.FIREBALL) ||
-                source.is(DamageTypes.UNATTRIBUTED_FIREBALL) ||
-                source.is(DamageTypes.LAVA) ||
-                source.is(DamageTypes.DRAGON_BREATH)
-        ) return false;
-
-        if (!this.level().isClientSide && this.getHealth() - amount <= 8 && !this.isPlayingDead()) {
+        if (source.is(DamageTypes.FALL) || source.is(DamageTypes.CAMPFIRE) || source.is(DamageTypes.IN_FIRE)
+            || source.is(DamageTypes.ON_FIRE) || source.is(DamageTypes.FIREBALL)
+            || source.is(DamageTypes.UNATTRIBUTED_FIREBALL) || source.is(DamageTypes.LAVA)
+            || source.is(DamageTypes.HOT_FLOOR) || source.is(DamageTypes.DRAGON_BREATH)) {
+            return false;
+        }
+        float threshold = DracolotlConfig.get().playDeadThreshold;
+        if (!this.level().isClientSide && threshold > 0.0f && this.getHealth() - amount <= threshold && !this.isPlayingDead()) {
             this.setPlayingDead(true);
             this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 3));
-
-            dracolotl.queueServerWork(200, () -> {
+            Dracolotl.queueServerWork(200, () -> {
                 if (this.isAlive()) {
                     this.setPlayingDead(false);
                     this.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 100, 1));
-
                     if (this.isTame() && this.getOwner() instanceof Player owner) {
                         owner.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 100, 1));
                     }
                 }
             });
-
             return true;
         }
         return super.hurt(source, amount);
@@ -335,30 +340,19 @@ public class DracolotlEntity extends TamableAnimal implements GeoEntity, ModBuck
     @Override
     public void tick() {
         super.tick();
-
         if (this.isPlayingDead()) {
-            List<Mob> nearbyEntities = this.level().getEntitiesOfClass(Mob.class, this.getBoundingBox().inflate(10));
+            List<Mob> nearbyEntities = this.level().getEntitiesOfClass(Mob.class, this.getBoundingBox().inflate(10.0));
             for (Mob entity : nearbyEntities) {
                 if (entity.getTarget() == this) {
                     entity.setTarget(null);
                 }
             }
         }
-
-        if (this.isPlayingDead() || !this.isWandering() && !this.isFollowing()) {
-            this.setDeltaMovement(this.getDeltaMovement().add(0, -0.5, 0));
+        if (this.isPlayingDead() || (!this.isWandering() && !this.isFollowing())) {
+            this.setDeltaMovement(this.getDeltaMovement().add(0.0, -0.5, 0.0));
         }
-
     }
 
-
-
-    //Swimming
-
-
-
-
-    //Sound Events
     @Override
     public SoundEvent getAmbientSound() {
         return SoundEvents.AXOLOTL_IDLE_AIR;
@@ -374,9 +368,6 @@ public class DracolotlEntity extends TamableAnimal implements GeoEntity, ModBuck
         return SoundEvents.AXOLOTL_DEATH;
     }
 
-
-
-    //Mob stuff
     @Override
     public boolean isFood(ItemStack itemStack) {
         return false;
@@ -388,18 +379,16 @@ public class DracolotlEntity extends TamableAnimal implements GeoEntity, ModBuck
         return null;
     }
 
-
-
-    //On right click behavior
     @Override
     public InteractionResult mobInteract(Player pPlayer, InteractionHand pHand) {
         ItemStack itemstack = pPlayer.getItemInHand(pHand);
+        var config = DracolotlConfig.get();
 
-        //Tries to tame if the item is an Eye of Ender and it isn't tame
-        if (itemstack.getItem() == Items.ENDER_EYE) {
+        // 1. 驯服逻辑检测
+        if (config.isTameItem(itemstack)) {
             this.usePlayerItem(pPlayer, pHand, itemstack);
             if (!this.isTame()) {
-                if (this.random.nextInt(5) == 0) {
+                if (this.random.nextDouble() * 100.0 < config.tameChance) {
                     this.tame(pPlayer);
                     this.BEHAVIOR = "FOLLOW";
                     this.level().broadcastEntityEvent(this, (byte) 7);
@@ -409,129 +398,105 @@ public class DracolotlEntity extends TamableAnimal implements GeoEntity, ModBuck
                 this.setPersistenceRequired();
                 return InteractionResult.SUCCESS;
             }
-        }
-
-        //Gives Dragon's Breath if it's owned by the player who interacted with it and the item is a bottle
-       else if (itemstack.getItem() == Items.GLASS_BOTTLE && this.isOwnedBy(pPlayer)) {
-
-            if (!pPlayer.isCreative()) {
-                itemstack.shrink(1);
-            }
-
-            ItemStack dragonsBreath = new ItemStack(Items.DRAGON_BREATH);
-
-            if (!pPlayer.getInventory().add(dragonsBreath)) {
-                pPlayer.drop(dragonsBreath, false);
-            }
-
-            this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
-                    SoundEvents.BOTTLE_FILL_DRAGONBREATH, SoundSource.NEUTRAL, 0.5F, 3.0F);
-
-            return InteractionResult.SUCCESS;
-
-        }
-
-        //Has a 3% chance to drop a Dragon Egg when fed a Chorus Flower
-        else if (itemstack.getItem() == Items.CHORUS_FLOWER) {
-
-                if (this.level().random.nextInt(100) < 3) {
-
-                    ItemStack dragonEgg = new ItemStack(Items.DRAGON_EGG);
-                    this.spawnAtLocation(dragonEgg);
-
+        } else {
+            // 2. 龙息采集
+            if (itemstack.getItem() == Items.GLASS_BOTTLE && this.isOwnedBy(pPlayer)) {
+                if (!config.enableDragonBreathCollection) {
+                    return InteractionResult.PASS;
                 }
-
-                this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
-                        SoundEvents.GENERIC_EAT, SoundSource.NEUTRAL, 0.5F, 1.0F);
-
-                for (int i = 0; i < 5; i++) {
-                        this.level().addParticle(ParticleTypes.SMOKE,
-                            this.getX() + (this.level().random.nextDouble() - 0.5D),
-                            this.getY() + 0.5D,
-                            this.getZ() + (this.level().random.nextDouble() - 0.5D),
-                          0, 0, 0);
-                }
-
                 if (!pPlayer.isCreative()) {
                     itemstack.shrink(1);
                 }
-
-                return InteractionResult.SUCCESS;
-
-        }
-
-        //Bucketing if it isn't tame or if the player who interacted with it owns it
-        else if (itemstack.getItem() == Items.BUCKET) {
-            if (!this.isTame() || this.isOwnedBy(pPlayer)) {
-                ModBucketableInterface.bucketMobPickup(pPlayer, pHand, this);
-            }
-        }
-
-        //Cycles behavior if it's owned by the player who interacted with it
-        else {
-            InteractionResult retval = super.mobInteract(pPlayer, pHand);
-            if (retval == InteractionResult.SUCCESS || retval == InteractionResult.CONSUME) {
-                this.setPersistenceRequired();
-            }
-
-            if (this.isOwnedBy(pPlayer)) {
-                cycleBehavior(pPlayer);
+                ItemStack dragonsBreath = new ItemStack(Items.DRAGON_BREATH);
+                if (!pPlayer.getInventory().add(dragonsBreath)) {
+                    pPlayer.drop(dragonsBreath, false);
+                }
+                this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.BOTTLE_FILL_DRAGONBREATH, SoundSource.NEUTRAL, 0.5f, 3.0f);
                 return InteractionResult.SUCCESS;
             }
 
-            return retval;
-        }
+            // 3. 喂食回血与龙蛋掉落
+            boolean isHealingFood = config.isHealingFood(itemstack);
+            boolean isEggFood = config.isEggDroppingFood(itemstack);
 
+            if (isHealingFood || isEggFood) {
+                boolean isInjured = this.getHealth() < this.getMaxHealth();
+                if (isInjured || isEggFood) {
+                    if (isInjured && isHealingFood) {
+                        this.heal(config.foodHealAmount);
+                    }
+                    if (isEggFood && (this.level().random.nextDouble() * 100.0 < config.eggDropChance)) {
+                        ItemStack dragonEgg = new ItemStack(Items.DRAGON_EGG);
+                        this.spawnAtLocation(dragonEgg);
+                    }
+
+                    this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.GENERIC_EAT, SoundSource.NEUTRAL, 0.5f, 1.0f);
+                    for (int i = 0; i < 5; ++i) {
+                        this.level().addParticle(ParticleTypes.SMOKE, this.getX() + (this.level().random.nextDouble() - 0.5), this.getY() + 0.5, this.getZ() + (this.level().random.nextDouble() - 0.5), 0.0, 0.0, 0.0);
+                    }
+                    if (isInjured && isHealingFood) {
+                        for (int i = 0; i < 4; ++i) {
+                            this.level().addParticle(ParticleTypes.HEART, this.getX() + (this.level().random.nextDouble() - 0.5), this.getY() + 0.5, this.getZ() + (this.level().random.nextDouble() - 0.5), 0.0, 0.0, 0.0);
+                        }
+                    }
+
+                    if (!pPlayer.isCreative()) {
+                        itemstack.shrink(1);
+                    }
+                    return InteractionResult.SUCCESS;
+                }
+            }
+
+            // 4. 装桶机制
+            if (itemstack.getItem() == Items.BUCKET) {
+                if (!this.isTame() || this.isOwnedBy(pPlayer)) {
+                    ModBucketableInterface.bucketMobPickup(pPlayer, pHand, this);
+                }
+            } else {
+                InteractionResult retval = super.mobInteract(pPlayer, pHand);
+                if (retval == InteractionResult.SUCCESS || retval == InteractionResult.CONSUME) {
+                    this.setPersistenceRequired();
+                }
+                if (this.isOwnedBy(pPlayer)) {
+                    this.cycleBehavior(pPlayer);
+                    return InteractionResult.SUCCESS;
+                }
+                return retval;
+            }
+        }
         return InteractionResult.PASS;
     }
 
-
-
-    //Behavior
-    private String BEHAVIOR = "WANDER";
-
-    private void setBehaviorInPersistentData(String behavior) {
-        CompoundTag tag = this.getPersistentData();
-        tag.putString("Behavior", behavior);
-    }
-
     public boolean isFollowing() {
-        return this.BEHAVIOR.equals("FOLLOW");
+        return "FOLLOW".equals(this.BEHAVIOR);
     }
 
     public boolean isWandering() {
-        return this.BEHAVIOR.equals("WANDER");
+        return "WANDER".equals(this.BEHAVIOR);
     }
 
     private void cycleBehavior(Player pPlayer) {
         switch (this.BEHAVIOR) {
             case "FOLLOW":
                 this.BEHAVIOR = "WANDER";
-                pPlayer.displayClientMessage(Component.literal("Dracolotl will wander"), true);
+                pPlayer.displayClientMessage(Component.translatable("message.dracolotl.behavior.wander"), true);
                 break;
             case "STAY":
                 this.BEHAVIOR = "FOLLOW";
-                pPlayer.displayClientMessage(Component.literal("Dracolotl will follow"), true);
+                pPlayer.displayClientMessage(Component.translatable("message.dracolotl.behavior.follow"), true);
                 break;
             case "WANDER":
+            default:
                 this.BEHAVIOR = "STAY";
-                pPlayer.displayClientMessage(Component.literal("Dracolotl will stay"), true);
+                pPlayer.displayClientMessage(Component.translatable("message.dracolotl.behavior.stay"), true);
                 break;
         }
-        this.setBehaviorInPersistentData(this.BEHAVIOR);
     }
 
-
-
-    //Sets skin to Red Dragon if it has the name 'Hellkite'
-    //Dark Souls 1 reference plus a reference to the scrapped Red Dragon mob
     public boolean ShouldUseRedDragonSkin() {
         return this.hasCustomName() && "Hellkite".equals(this.getCustomName().getString());
     }
 
-
-
-    //NBT Tags
     @Override
     public void addAdditionalSaveData(CompoundTag compound) {
         super.addAdditionalSaveData(compound);
@@ -548,9 +513,6 @@ public class DracolotlEntity extends TamableAnimal implements GeoEntity, ModBuck
         }
     }
 
-
-
-    //GeckoLib
     public boolean isFlying() {
         return !this.onGround() && !this.isPlayingDead();
     }
@@ -561,14 +523,10 @@ public class DracolotlEntity extends TamableAnimal implements GeoEntity, ModBuck
     }
 
     private PlayState predicate(AnimationState<DracolotlEntity> dracolotlEntityAnimationState) {
-
-        //Playing Dead
         if (this.isPlayingDead()) {
             dracolotlEntityAnimationState.getController().setAnimation(RawAnimation.begin().then("PLAY_DEAD", Animation.LoopType.LOOP));
             return PlayState.CONTINUE;
         }
-
-        //Air
         if (this.isFlying() && !this.isNoAi()) {
             if (dracolotlEntityAnimationState.isMoving()) {
                 dracolotlEntityAnimationState.getController().setAnimation(RawAnimation.begin().then("MOVE_AIR", Animation.LoopType.LOOP));
@@ -577,24 +535,16 @@ public class DracolotlEntity extends TamableAnimal implements GeoEntity, ModBuck
             }
             return PlayState.CONTINUE;
         }
-
-        //Ground
-        if(dracolotlEntityAnimationState.isMoving()) {
+        if (dracolotlEntityAnimationState.isMoving()) {
             dracolotlEntityAnimationState.getController().setAnimation(RawAnimation.begin().then("MOVE_GROUND", Animation.LoopType.LOOP));
             return PlayState.CONTINUE;
         }
-
         dracolotlEntityAnimationState.getController().setAnimation(RawAnimation.begin().then("IDLE_GROUND", Animation.LoopType.LOOP));
         return PlayState.CONTINUE;
     }
 
-    private AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
-
     @Override
     public AnimatableInstanceCache getAnimatableInstanceCache() {
-        return cache;
+        return this.cache;
     }
-
-
-
 }

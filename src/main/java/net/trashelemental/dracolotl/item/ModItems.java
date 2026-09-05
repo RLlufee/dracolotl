@@ -1,31 +1,28 @@
 package net.trashelemental.dracolotl.item;
 
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.Item;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.common.DeferredSpawnEggItem;
-import net.neoforged.neoforge.registries.DeferredItem;
-import net.neoforged.neoforge.registries.DeferredRegister;
-import net.trashelemental.dracolotl.dracolotl;
+import net.minecraft.world.item.SpawnEggItem;
+import net.trashelemental.dracolotl.Dracolotl;
 import net.trashelemental.dracolotl.entity.ModEntities;
 import net.trashelemental.dracolotl.item.custom.DracolotlBucketItem;
 
-import java.util.function.Supplier;
-
 public class ModItems {
-    public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(dracolotl.MOD_ID);
+    public static final Item BUCKET_OF_DRACOLOTL = Registry.register(
+        BuiltInRegistries.ITEM,
+        Dracolotl.id("bucket_of_dracolotl"),
+        new DracolotlBucketItem(ModEntities.DRACOLOTL, SoundEvents.BUCKET_EMPTY_AXOLOTL, new Item.Properties().stacksTo(1))
+    );
 
+    public static final Item DRACOLOTL_SPAWN_EGG = Registry.register(
+        BuiltInRegistries.ITEM,
+        Dracolotl.id("dracolotl_spawn_egg"),
+        new SpawnEggItem(ModEntities.DRACOLOTL, -13948117, -3506983, new Item.Properties())
+    );
 
-    public static final DeferredItem<Item> BUCKET_OF_DRACOLOTL = ITEMS.register("bucket_of_dracolotl",
-            () -> new DracolotlBucketItem(ModEntities.DRACOLOTL.get(), SoundEvents.BUCKET_EMPTY_AXOLOTL, new Item.Properties().stacksTo(1)));
-
-    public static final Supplier<DeferredSpawnEggItem> DRACOLOTL_SPAWN_EGG = ITEMS.register("dracolotl_spawn_egg",
-            () -> new DeferredSpawnEggItem(ModEntities.DRACOLOTL, -13948117, -3506983, new Item.Properties()));
-
-
-
-
-    public static void register(IEventBus eventBus) {
-        ITEMS.register(eventBus);
+    public static void register() {
+        // Triggers class loading to register items
     }
 }
